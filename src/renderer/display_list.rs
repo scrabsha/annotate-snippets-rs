@@ -32,14 +32,14 @@
 //!
 //! The above snippet has been built out of the following structure:
 use crate::snippet;
-use std::cmp::{max, min, Reverse};
+use std::cmp::{Reverse, max, min};
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::ops::Range;
 use std::{cmp, fmt};
 
 use crate::renderer::styled_buffer::StyledBuffer;
-use crate::renderer::{stylesheet::Stylesheet, Margin, Style, DEFAULT_TERM_WIDTH};
+use crate::renderer::{DEFAULT_TERM_WIDTH, Margin, Style, stylesheet::Stylesheet};
 
 const ANONYMIZED_LINE_NUM: &str = "LL";
 const ERROR_TXT: &str = "error";
@@ -227,6 +227,7 @@ impl DisplaySet<'_> {
         match line {
             DisplayRawLine::Origin {
                 path,
+                url,
                 pos,
                 header_type,
             } => {
@@ -236,7 +237,14 @@ impl DisplaySet<'_> {
                 };
                 let lineno_color = stylesheet.line_no();
                 buffer.puts(line_offset, lineno_width, header_sigil, *lineno_color);
-                buffer.puts(line_offset, lineno_width + 4, path, stylesheet.none);
+
+                let path = if let Some(url) = url {
+                    format!("\x1B]8;;{url}\x1B\\{path}\x1B]8;;\x1B\\")
+                } else {
+                    path.to_string()
+                };
+
+                buffer.puts(line_offset, lineno_width + 4, &path, stylesheet.none);
                 if let Some((col, row)) = pos {
                     buffer.append(line_offset, ":", stylesheet.none);
                     buffer.append(line_offset, col.to_string().as_str(), stylesheet.none);
@@ -827,6 +835,7 @@ pub(crate) enum DisplayRawLine<'a> {
     /// slice in the project structure.
     Origin {
         path: &'a str,
+        url: Option<String>,
         pos: Option<(usize, usize)>,
         header_type: DisplayHeaderType,
     },
@@ -1098,6 +1107,7 @@ fn format_snippet(
 ) -> DisplaySet<'_> {
     let main_range = snippet.annotations.first().map(|x| x.range.start);
     let origin = snippet.origin;
+    let url = snippet.url.clone();
     let need_empty_header = origin.is_some() || is_first;
     let mut body = format_body(
         snippet,
@@ -1106,7 +1116,7 @@ fn format_snippet(
         term_width,
         anonymized_line_numbers,
     );
-    let header = format_header(origin, main_range, &body.display_lines, is_first);
+    let header = format_header(origin, url, main_range, &body.display_lines, is_first);
 
     if let Some(header) = header {
         body.display_lines.insert(0, header);
@@ -1123,6 +1133,7 @@ fn zip_opt<A, B>(a: Option<A>, b: Option<B>) -> Option<(A, B)> {
 
 fn format_header<'a>(
     origin: Option<&'a str>,
+    url: Option<String>,
     main_range: Option<usize>,
     body: &[DisplayLine<'_>],
     is_first: bool,
@@ -1162,6 +1173,7 @@ fn format_header<'a>(
 
         return Some(DisplayLine::Raw(DisplayRawLine::Origin {
             path,
+            url,
             pos: Some((line_offset, col)),
             header_type: display_header,
         }));
@@ -1170,6 +1182,7 @@ fn format_header<'a>(
     if let Some(path) = origin {
         return Some(DisplayLine::Raw(DisplayRawLine::Origin {
             path,
+            url,
             pos: None,
             header_type: display_header,
         }));

@@ -59,11 +59,11 @@ impl<'a> Message<'a> {
 #[derive(Debug)]
 pub struct Snippet<'a> {
     pub(crate) origin: Option<&'a str>,
+    pub(crate) url: Option<String>,
     pub(crate) line_start: usize,
 
     pub(crate) source: &'a str,
     pub(crate) annotations: Vec<Annotation<'a>>,
-
     pub(crate) fold: bool,
 }
 
@@ -75,6 +75,7 @@ impl<'a> Snippet<'a> {
             source,
             annotations: vec![],
             fold: false,
+            url: None,
         }
     }
 
@@ -98,7 +99,12 @@ impl<'a> Snippet<'a> {
         self
     }
 
-    /// Hide lines without [`Annotation`]s
+    // TODO(scrabsha): doc.
+    pub fn url(mut self, url: Option<String>) -> Self {
+        self.url = url;
+        self
+    }
+
     pub fn fold(mut self, fold: bool) -> Self {
         self.fold = fold;
         self
