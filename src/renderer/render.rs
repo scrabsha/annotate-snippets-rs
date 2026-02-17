@@ -1725,7 +1725,7 @@ fn emit_suggestion_default(
                             .chars()
                             .take(span_start.char)
                             .map(|ch| match ch {
-                                '\t' => 3,
+                                '\t' => 4,
                                 _ => 0,
                             })
                             .sum();
@@ -1761,7 +1761,7 @@ fn emit_suggestion_default(
                         .chars()
                         .take(span_start.char)
                         .map(|ch| match ch {
-                            '\t' => 3,
+                            '\t' => 4,
                             _ => 0,
                         })
                         .sum();
